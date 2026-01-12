@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CRUD with Spring Boot and PostgreSQL</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body class="container mt-5">
+    <h2>Data User</h2>
+
+    <form id="userForm">
+        <input type="hidden" id="userId">
+        <div class="mb-3">
+            <input type="text" id="name" class="form-control" placeholder="Nama" required>
+        </div>
+        <div class="mb-3">
+            <input type="email" id="email" class="form-control" placeholder="Email" required>
+        </div>
+        <div class="mb-3">
+            <input type="alamat" id="alamat" class="form-control" placeholder="Alamat" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Simpan</button>
+    </form>
+
+    <hr>
+
+    <table class="table table-bordered mt-4">
+        <thead>
+            <tr>
+                <th>No</th> <!-- Tambahkan ini -->
+                <th>Nama</th>
+                <th>Email</th>
+                <th>Alamat</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="userTable"></tbody>
+    </table>
+
+    <script>
+        const api = 'http://localhost:8080/api/users';
+
+        async function fetchUsers() {
+            const res = await fetch(api);
+            const users = await res.json();
+            const table = document.getElementById('userTable');
+            table.innerHTML = '';
+            users.forEach((user, index) => {
+
+                console.log("User:", user);
+
+                table.innerHTML += `
+          <tr>
+            <td>${index + 1}</td> <!-- Nomor urut -->
+            <td>${user.name}</td>
+            <td>${user.email}</td>
+            <td>${user.alamat}</td>
+            <td>
+              <button class="btn btn-warning btn-sm" onclick="editUser(${user.id}, '${user.name}', '${user.email}', '${user.alamat}')">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="confirmDelete(${user.id}, '${user.name}')">Hapus</button>
+            </td>
+          </tr>
+        `;
+            });
+        }
+
+        function editUser(id, name, email, alamat) {
+            document.getElementById('userId').value = id;
+            document.getElementById('name').value = name;
+            document.getElementById('email').value = email;
+            document.getElementById('alamat').value = alamat;
+        }
+
+        async function deleteUser(id) {
+            await fetch(`${api}/${id}`, { method: 'DELETE' });
+            fetchUsers();
+        }
+
+        // ✅ Dialog konfirmasi pakai SweetAlert2
+        function confirmDelete(id, name) {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: `Data "${name}" akan dihapus secara permanen!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    deleteUser(id);
+                    Swal.fire('Terhapus!', `Data "${name}" telah dihapus.`, 'success');
+                }
+            });
+        }
+
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('userId').value;
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const alamat = document.getElementById('alamat').value;
+
+            const userData = { name, email, alamat };
+
+            if (id) {
+                await fetch(`${api}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+            } else {
+                await fetch(api, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+            }
+
+            document.getElementById('userForm').reset();
+            fetchUsers();
+        });
+
+        fetchUsers();
+    </script>
+</body>
+
+</html>
